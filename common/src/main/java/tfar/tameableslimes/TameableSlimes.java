@@ -21,6 +21,6 @@ public class TameableSlimes {
 
     public static void init() {
         Services.PLATFORM.registerAll(ModEntityTypes.class, BuiltInRegistries.ENTITY_TYPE, EntityType.class);
-        Services.PLATFORM.registerAll(ModItems.class, BuiltInRegistries.ITEM, Item.class);
+        Services.PLATFORM.registerAll(ModItems.class, BuiltInRegistries.ITEM, Item.class);//this class MUST come after entitytypes!
     }
 }
