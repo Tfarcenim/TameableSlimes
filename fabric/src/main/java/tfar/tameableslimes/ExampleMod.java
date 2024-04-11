@@ -1,4 +1,4 @@
-package com.example.examplemod;
+package tfar.tameableslimes;
 
 import net.fabricmc.api.ModInitializer;
 
@@ -12,7 +12,7 @@ public class ExampleMod implements ModInitializer {
         // project.
 
         // Use Fabric to bootstrap the Common mod.
-        CommonClass.LOG.info("Hello Fabric world!");
-        CommonClass.init();
+        TameableSlimes.LOG.info("Hello Fabric world!");
+        TameableSlimes.init();
     }
 }

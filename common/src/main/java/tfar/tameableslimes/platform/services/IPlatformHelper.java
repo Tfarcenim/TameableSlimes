@@ -1,4 +1,4 @@
-package com.example.examplemod.platform.services;
+package tfar.tameableslimes.platform.services;
 
 public interface IPlatformHelper {
 
