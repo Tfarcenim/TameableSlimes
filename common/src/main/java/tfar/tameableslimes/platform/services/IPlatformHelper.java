@@ -1,5 +1,7 @@
 package tfar.tameableslimes.platform.services;
 
+import net.minecraft.core.Registry;
+
 public interface IPlatformHelper {
 
     /**
@@ -30,7 +32,11 @@ public interface IPlatformHelper {
      * @return The name of the environment type.
      */
     default String getEnvironmentName() {
-
         return isDevelopmentEnvironment() ? "development" : "production";
     }
+
+    <T extends Registry<? extends F>,F> void registerAll(Class<?> clazz, T registry, Class<? extends F> filter);
+
+
+
 }
