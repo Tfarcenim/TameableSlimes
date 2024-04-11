@@ -21,7 +21,7 @@ public class ModItemModelProvider extends ItemModelGenerators {
 
     @Override
     public void run() {
-        generateFlatItems(ModItems.TAMEABLE_SLIME_SPAWN_EGG);
+        generateFlatItem(ModItems.TAMEABLE_SLIME_SPAWN_EGG,SPAWN_EGG);
     }
 
     public void generateFlatItems(Item... items) {

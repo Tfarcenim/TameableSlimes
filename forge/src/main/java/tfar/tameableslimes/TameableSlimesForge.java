@@ -1,7 +1,6 @@
 package tfar.tameableslimes;
 
 import net.minecraft.core.Registry;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
@@ -12,7 +11,6 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.registries.RegisterEvent;
 import org.apache.commons.lang3.tuple.Pair;
-import tfar.tameableslimes.client.TameableSlimesClient;
 import tfar.tameableslimes.client.TameableSlimesClientForge;
 import tfar.tameableslimes.datagen.ModDatagen;
 import tfar.tameableslimes.init.ModEntityTypes;
