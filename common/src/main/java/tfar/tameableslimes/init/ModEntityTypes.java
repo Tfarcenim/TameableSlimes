@@ -15,8 +15,7 @@ public class ModEntityTypes {
     public static final EntityType<TameableSlime> TAMEABLE_SLIME = EntityType.Builder.of(TameableSlime::new, MobCategory.CREATURE).sized(2.04F, 2.04F)
             .clientTrackingRange(10).build("");
 
-    static {
+    public static void initAttributes() {
         attributes.put(TAMEABLE_SLIME, TameableSlime.createAttributes().build());
     }
-
 }

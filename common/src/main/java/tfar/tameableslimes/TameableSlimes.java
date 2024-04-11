@@ -2,9 +2,11 @@ package tfar.tameableslimes;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.Item;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tfar.tameableslimes.init.ModEntityTypes;
+import tfar.tameableslimes.init.ModItems;
 import tfar.tameableslimes.platform.Services;
 
 // This class is part of the common project meaning it is shared between all supported loaders. Code written here can only
@@ -19,5 +21,6 @@ public class TameableSlimes {
 
     public static void init() {
         Services.PLATFORM.registerAll(ModEntityTypes.class, BuiltInRegistries.ENTITY_TYPE, EntityType.class);
+        Services.PLATFORM.registerAll(ModItems.class, BuiltInRegistries.ITEM, Item.class);
     }
 }

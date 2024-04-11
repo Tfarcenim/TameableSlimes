@@ -38,7 +38,7 @@ public class ForgePlatformHelper implements IPlatformHelper {
 
 
     @Override
-    public <T extends Registry<? extends F>,F> void registerAll(Class<?> clazz, T registry, Class<? extends F> filter) {
+    public <T extends Registry<? extends F>,F> void registerAll(Class<?> clazz, T registry, Class<F> filter) {
         List<Pair<ResourceLocation, Supplier<?>>> list = TameableSlimesForge.registerLater.computeIfAbsent(registry, k -> new ArrayList<>());
         for (Field field : clazz.getFields()) {
             MappedRegistry<? extends F> forgeRegistry = (MappedRegistry<? extends F>) registry;

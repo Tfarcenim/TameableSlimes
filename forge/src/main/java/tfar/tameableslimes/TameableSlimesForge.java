@@ -12,6 +12,9 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.registries.RegisterEvent;
 import org.apache.commons.lang3.tuple.Pair;
+import tfar.tameableslimes.client.TameableSlimesClient;
+import tfar.tameableslimes.client.TameableSlimesClientForge;
+import tfar.tameableslimes.datagen.ModDatagen;
 import tfar.tameableslimes.init.ModEntityTypes;
 
 import java.util.HashMap;
@@ -29,8 +32,9 @@ public class TameableSlimesForge {
         bus.addListener(this::commonSetup);
         bus.addListener(this::register);
         bus.addListener(this::attributes);
+        bus.addListener(ModDatagen::start);
         if (FMLEnvironment.dist.isClient()) {
-
+            bus.addListener(TameableSlimesClientForge::renderers);
         }
         TameableSlimes.init();
     }
@@ -46,6 +50,7 @@ public class TameableSlimesForge {
     }
 
     private void attributes(EntityAttributeCreationEvent e) {
+        ModEntityTypes.initAttributes();
         ModEntityTypes.attributes.forEach(e::put);
     }
 
