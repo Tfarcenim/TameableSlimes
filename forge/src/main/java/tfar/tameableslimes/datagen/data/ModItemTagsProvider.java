@@ -3,8 +3,10 @@ package tfar.tameableslimes.datagen.data;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.tags.ItemTagsProvider;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.common.data.ExistingFileHelper;
+import tfar.tameableslimes.TameableSlime;
 import tfar.tameableslimes.TameableSlimes;
 
 import javax.annotation.Nullable;
@@ -18,5 +20,6 @@ public class ModItemTagsProvider extends ItemTagsProvider {
     @SuppressWarnings("unchecked")
     @Override
     protected void addTags(HolderLookup.Provider pProvider) {
+        tag(TameableSlime.TAMING_ITEM).add(Items.SLIME_BALL);
     }
 }
