@@ -4,10 +4,12 @@ import java.util.EnumSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.ai.control.MoveControl;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -110,7 +112,18 @@ public class SlimeFollowOwnerGoal extends Goal {
             if (this.tamable.distanceToSqr(this.owner) >= TELEPORT_WHEN_DISTANCE_IS * TELEPORT_WHEN_DISTANCE_IS) {
                 this.teleportToOwner();
             } else {
-                this.navigation.moveTo(this.owner, this.speedModifier);
+                if (owner != null) {
+                    this.tamable.lookAt(owner, 30, 30);
+                }
+
+
+                MoveControl movecontrol = this.tamable.getMoveControl();
+                if (movecontrol instanceof Slime.SlimeMoveControl slime$slimemovecontrol) {
+                    slime$slimemovecontrol.setDirection(this.tamable.getYRot(), this.tamable.isDealsDamage());
+                    this.navigation.moveTo(this.owner, this.speedModifier);
+
+                }
+
             }
 
         }

@@ -15,15 +15,22 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
-import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
+import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.animal.Wolf;
+import net.minecraft.world.entity.animal.horse.AbstractHorse;
+import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.*;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
 import org.jetbrains.annotations.Nullable;
 import tfar.tameableslimes.entity.goal.SlimeFollowOwnerGoal;
+import tfar.tameableslimes.entity.goal.SlimeOwnerHurtByTargetGoal;
+import tfar.tameableslimes.entity.goal.SlimeOwnerHurtTargetGoal;
 import tfar.tameableslimes.entity.goal.SlimeSitWhenOrderedToSitGoal;
 
 import java.util.Optional;
@@ -35,13 +42,13 @@ public class TameableSlime extends Slime implements OwnableEntity {
     protected static final EntityDataAccessor<Byte> DATA_FLAGS_ID = SynchedEntityData.defineId(TameableSlime.class, EntityDataSerializers.BYTE);
     private boolean orderedToSit;
 
-    public static final TagKey<Item> TAMING_ITEM = TagKey.create(Registries.ITEM,new ResourceLocation(TameableSlimes.MOD_ID,"taming_item"));
+    public static final TagKey<Item> TAMING_ITEM = TagKey.create(Registries.ITEM, new ResourceLocation(TameableSlimes.MOD_ID, "taming_item"));
 
     public static final Object2IntMap<Item> HEALING_ITEMS = new Object2IntOpenHashMap<>();
 
     static {
-        HEALING_ITEMS.put(Items.SLIME_BALL,1);
-        HEALING_ITEMS.put(Items.SLIME_BLOCK,10);
+        HEALING_ITEMS.put(Items.SLIME_BALL, 1);
+        HEALING_ITEMS.put(Items.SLIME_BLOCK, 10);
     }
 
     public TameableSlime(EntityType<? extends Slime> $$0, Level $$1) {
@@ -51,9 +58,28 @@ public class TameableSlime extends Slime implements OwnableEntity {
 
     @Override
     protected void registerGoals() {
+
         this.goalSelector.addGoal(2, new SlimeSitWhenOrderedToSitGoal(this));
-       // this.goalSelector.addGoal(5, new MeleeAttackGoal(this, 1.0D, true));
-        this.goalSelector.addGoal(6, new SlimeFollowOwnerGoal(this, 1.0D, 4, 2.0F, false));
+        this.goalSelector.addGoal(2, new Slime.SlimeAttackGoal(this));
+        this.goalSelector.addGoal(6, new SlimeFollowOwnerGoal(this, 1.0D, 7, 4, false));
+
+        this.targetSelector.addGoal(1, new SlimeOwnerHurtByTargetGoal(this));
+        this.targetSelector.addGoal(2, new SlimeOwnerHurtTargetGoal(this));
+
+    }
+
+    public boolean wantsToAttack(LivingEntity pTarget, LivingEntity pOwner) {
+        if (pTarget == pOwner) {//don't attack the owner
+            return false;
+        } else if (pTarget instanceof Creeper || pTarget instanceof Ghast) {
+            return false;//don't attack creepers or ghasts
+        }
+        return true;
+    }
+
+    @Override
+    public boolean isDealsDamage() {
+        return super.isDealsDamage();
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -64,7 +90,7 @@ public class TameableSlime extends Slime implements OwnableEntity {
     protected void defineSynchedData() {
         super.defineSynchedData();
         this.entityData.define(DATA_OWNERUUID_ID, Optional.empty());
-        this.entityData.define(DATA_FLAGS_ID,(byte)0);
+        this.entityData.define(DATA_FLAGS_ID, (byte) 0);
     }
 
     @Override
@@ -83,18 +109,39 @@ public class TameableSlime extends Slime implements OwnableEntity {
     }
 
     public boolean isTame() {
-        return (this.entityData.get(DATA_FLAGS_ID) & 4) != 0;
+        return (this.entityData.get(DATA_FLAGS_ID) & TAME) != 0;
     }
+
+    static final byte TAME = 0b100;
 
     public void setTame(boolean pTamed) {
         byte flags = this.entityData.get(DATA_FLAGS_ID);
         if (pTamed) {
-            this.entityData.set(DATA_FLAGS_ID, (byte) (flags | 4));
+            this.entityData.set(DATA_FLAGS_ID, (byte) (flags | TAME));
         } else {
-            this.entityData.set(DATA_FLAGS_ID, (byte) (flags & -5));
+            this.entityData.set(DATA_FLAGS_ID, (byte) (flags & ~TAME));
         }
 
         this.reassessTameGoals();
+    }
+
+    @Override
+    public void push(Entity pEntity) {
+        super.push(pEntity);
+        if (pEntity instanceof LivingEntity living) {
+            if (this.isDealsDamage() && getTarget() == living) {
+                this.dealDamage(living);
+            }
+        }
+    }
+
+    @Override
+    protected void dealDamage(LivingEntity entity) {
+        if (entity instanceof IronGolem) {
+            //super will damage the iron golem
+        } else {
+            super.dealDamage(entity);
+        }
     }
 
     @Override
@@ -102,6 +149,7 @@ public class TameableSlime extends Slime implements OwnableEntity {
         //super.playerTouch(player);
     }
 
+    @Override
     public InteractionResult mobInteract(Player pPlayer, InteractionHand pHand) {
         ItemStack itemstack = pPlayer.getItemInHand(pHand);
         Item item = itemstack.getItem();
@@ -118,6 +166,18 @@ public class TameableSlime extends Slime implements OwnableEntity {
                 this.gameEvent(GameEvent.EAT, this);
                 return InteractionResult.SUCCESS;
             } else {
+
+                if (item == Items.SLIME_BLOCK) {
+                    if (isOwnedBy(pPlayer) && canGrow()) {
+                        setSize(getSize() + 1, true);
+                        if (!pPlayer.getAbilities().instabuild) {
+                            itemstack.shrink(1);
+                        }
+                        return InteractionResult.SUCCESS;
+                    }
+                    return super.mobInteract(pPlayer, pHand);
+                }
+
             /*    if (item instanceof DyeItem) {
                     DyeItem dyeitem = (DyeItem)item;
                     if (this.isOwnedBy(pPlayer)) {
@@ -169,6 +229,10 @@ public class TameableSlime extends Slime implements OwnableEntity {
 
     private boolean isFood(ItemStack itemstack) {
         return HEALING_ITEMS.containsKey(itemstack.getItem());
+    }
+
+    boolean canGrow() {
+        return getSize() < 100;
     }
 
 
@@ -234,9 +298,6 @@ public class TameableSlime extends Slime implements OwnableEntity {
         this.orderedToSit = pCompound.getBoolean("Sitting");
         this.setInSittingPose(this.orderedToSit);
     }
-
-
-
 
 
     public boolean isOrderedToSit() {
