@@ -16,8 +16,6 @@ import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.IronGolem;
-import net.minecraft.world.entity.animal.Wolf;
-import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.entity.monster.Slime;
@@ -62,10 +60,26 @@ public class TameableSlime extends Slime implements OwnableEntity {
         this.goalSelector.addGoal(2, new SlimeSitWhenOrderedToSitGoal(this));
         this.goalSelector.addGoal(2, new Slime.SlimeAttackGoal(this));
         this.goalSelector.addGoal(6, new SlimeFollowOwnerGoal(this, 1.0D, 7, 4, false));
+        this.goalSelector.addGoal(5, new JumpUnlessTameGoal(this));
 
         this.targetSelector.addGoal(1, new SlimeOwnerHurtByTargetGoal(this));
         this.targetSelector.addGoal(2, new SlimeOwnerHurtTargetGoal(this));
 
+
+    }
+
+    public static class JumpUnlessTameGoal extends SlimeKeepOnJumpingGoal {
+
+        protected final TameableSlime tameableSlime;
+        public JumpUnlessTameGoal(TameableSlime $$0) {
+            super($$0);
+            this.tameableSlime = $$0;
+        }
+
+        @Override
+        public boolean canUse() {
+            return super.canUse() && !tameableSlime.isOrderedToSit() && tameableSlime.getTarget() != null;
+        }
     }
 
     public boolean wantsToAttack(LivingEntity pTarget, LivingEntity pOwner) {
@@ -225,6 +239,11 @@ public class TameableSlime extends Slime implements OwnableEntity {
         } else {
             return super.mobInteract(pPlayer, pHand);
         }
+    }
+
+    @Override
+    public boolean removeWhenFarAway(double $$0) {
+        return !isTame();
     }
 
     private boolean isFood(ItemStack itemstack) {
