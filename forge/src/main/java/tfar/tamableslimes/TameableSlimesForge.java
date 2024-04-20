@@ -63,5 +63,6 @@ public class TameableSlimesForge {
 
     private void commonSetup(FMLCommonSetupEvent event) {
         registerLater.clear();
+        SlimeInteractions.bootstrap();
     }
 }

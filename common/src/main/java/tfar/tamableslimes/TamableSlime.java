@@ -44,13 +44,6 @@ public class TamableSlime extends Slime implements OwnableEntity {
 
     public static final TagKey<Item> TAMING_ITEM = TagKey.create(Registries.ITEM, new ResourceLocation(TamableSlimes.MOD_ID, "taming_item"));
 
-    public static final Object2IntMap<Item> HEALING_ITEMS = new Object2IntOpenHashMap<>();
-
-    static {
-        HEALING_ITEMS.put(Items.SLIME_BALL, 1);
-        HEALING_ITEMS.put(Items.SLIME_BLOCK, 10);
-    }
-
     public TamableSlime(EntityType<? extends Slime> $$0, Level $$1) {
         super($$0, $$1);
         this.reassessTameGoals();
@@ -126,6 +119,7 @@ public class TamableSlime extends Slime implements OwnableEntity {
     }
 
     static final byte TAME = 0b100;
+    static final byte SITTING = 0b1;
 
     public void setTame(boolean pTamed) {
         byte flags = this.entityData.get(DATA_FLAGS_ID);
@@ -163,86 +157,62 @@ public class TamableSlime extends Slime implements OwnableEntity {
     }
 
     @Override
-    public InteractionResult mobInteract(Player pPlayer, InteractionHand pHand) {
-        ItemStack itemstack = pPlayer.getItemInHand(pHand);
+    public InteractionResult mobInteract(Player player, InteractionHand pHand) {
+        ItemStack itemstack = player.getItemInHand(pHand);
         Item item = itemstack.getItem();
-        if (this.level().isClientSide) {
-            boolean flag = this.isOwnedBy(pPlayer) || this.isTame() || itemstack.is(TAMING_ITEM) && !this.isTame();
-            return flag ? InteractionResult.CONSUME : InteractionResult.PASS;
-        } else if (this.isTame()) {
-            if (this.isFood(itemstack) && this.getHealth() < this.getMaxHealth()) {
-                this.heal(HEALING_ITEMS.getInt(itemstack.getItem()));
-                if (!pPlayer.getAbilities().instabuild) {
-                    itemstack.shrink(1);
+        boolean client = level().isClientSide;
+        boolean tame = isTame();
+        if (!tame) {
+            if (itemstack.is(TAMING_ITEM)) {
+                if (!client) {
+                    tryTame(player,itemstack);
                 }
-
-                this.gameEvent(GameEvent.EAT, this);
                 return InteractionResult.SUCCESS;
-            } else {
-
-                if (item == Items.SLIME_BLOCK) {
-                    if (isOwnedBy(pPlayer) && canGrow()) {
-                        setSize(getSize() + 1, true);
-                        if (!pPlayer.getAbilities().instabuild) {
-                            itemstack.shrink(1);
-                        }
-                        return InteractionResult.SUCCESS;
-                    }
-                    return super.mobInteract(pPlayer, pHand);
-                }
-
-            /*    if (item instanceof DyeItem) {
-                    DyeItem dyeitem = (DyeItem)item;
-                    if (this.isOwnedBy(pPlayer)) {
-                        DyeColor dyecolor = dyeitem.getDyeColor();
-                        if (dyecolor != this.getCollarColor()) {
-                            this.setCollarColor(dyecolor);
-                            if (!pPlayer.getAbilities().instabuild) {
-                                itemstack.shrink(1);
-                            }
-
-                            return InteractionResult.SUCCESS;
-                        }
-
-                        return super.mobInteract(pPlayer, pHand);
-                    }
-                }*/
-
-                InteractionResult interactionresult = super.mobInteract(pPlayer, pHand);
-                if ((!interactionresult.consumesAction() || this.isBaby()) && this.isOwnedBy(pPlayer)) {
-                    if (pPlayer.isCrouching()) {
-                        this.level().broadcastEntityEvent(this, EntityEvent.IN_LOVE_HEARTS);
-
-                        return InteractionResult.SUCCESS;
-                    } else {
-                        this.setOrderedToSit(!this.isOrderedToSit());
-                        this.jumping = false;
-                        this.navigation.stop();
-                        this.setTarget(null);
-                        return InteractionResult.SUCCESS;
-                    }
+            }
+        } else {
+            if (isOwnedBy(player)) {
+                if (!itemstack.isEmpty()) {
+                    SlimeInteractions.EntityInteract entityInteract = SlimeInteractions.SLIME_INTERACTIONS.get(item);
+                    return entityInteract == null ? InteractionResult.PASS : entityInteract.interact(this, player, pHand);
                 } else {
-                    return interactionresult;
+                    return emptyRightClick(player,pHand);
                 }
             }
-        } else if (itemstack.is(TAMING_ITEM)) {
-            if (!pPlayer.getAbilities().instabuild) {
-                itemstack.shrink(1);
-            }
+        }
+        return super.mobInteract(player, pHand);
+    }
 
-            if (this.random.nextInt(3) == 0 /*&& !net.minecraftforge.event.ForgeEventFactory.onAnimalTame(this, pPlayer)*/) {//todo
-                this.tame(pPlayer);
+    InteractionResult emptyRightClick(Player player,InteractionHand hand) {
+        InteractionResult interactionresult = super.mobInteract(player, hand);
+        if ((!interactionresult.consumesAction() || this.isBaby()) && this.isOwnedBy(player)) {
+            if (player.isCrouching()) {
+                this.level().broadcastEntityEvent(this, EntityEvent.IN_LOVE_HEARTS);
+                this.playSound(this.getSquishSound(), this.getSoundVolume(), ((this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.0F) / 0.8F);
+            } else {
+                this.setOrderedToSit(!this.isOrderedToSit());
+                this.jumping = false;
                 this.navigation.stop();
                 this.setTarget(null);
-                this.setOrderedToSit(true);
-                this.level().broadcastEntityEvent(this, EntityEvent.TAMING_SUCCEEDED);
-            } else {
-                this.level().broadcastEntityEvent(this,EntityEvent.TAMING_FAILED);
             }
-
             return InteractionResult.SUCCESS;
         } else {
-            return super.mobInteract(pPlayer, pHand);
+            return interactionresult;
+        }
+    }
+
+    void tryTame(Player player, ItemStack itemstack) {
+        if (!player.getAbilities().instabuild) {
+            itemstack.shrink(1);
+        }
+
+        if (this.random.nextInt(3) == 0 /*&& !net.minecraftforge.event.ForgeEventFactory.onAnimalTame(this, pPlayer)*/) {//todo
+            this.tame(player);
+            this.navigation.stop();
+            this.setTarget(null);
+            this.setOrderedToSit(true);
+            this.level().broadcastEntityEvent(this, EntityEvent.TAMING_SUCCEEDED);
+        } else {
+            this.level().broadcastEntityEvent(this,EntityEvent.TAMING_FAILED);
         }
     }
 
@@ -287,12 +257,8 @@ public class TamableSlime extends Slime implements OwnableEntity {
         return !isTame();
     }
 
-    private boolean isFood(ItemStack itemstack) {
-        return HEALING_ITEMS.containsKey(itemstack.getItem());
-    }
-
     boolean canGrow() {
-        return getSize() < 100;
+        return getSize() < 64;
     }
 
 
@@ -300,15 +266,15 @@ public class TamableSlime extends Slime implements OwnableEntity {
     }
 
     public boolean isInSittingPose() {
-        return (this.entityData.get(DATA_FLAGS_ID) & 1) != 0;
+        return (this.entityData.get(DATA_FLAGS_ID) & SITTING) != 0;
     }
 
     public void setInSittingPose(boolean pSitting) {
         byte b0 = this.entityData.get(DATA_FLAGS_ID);
         if (pSitting) {
-            this.entityData.set(DATA_FLAGS_ID, (byte) (b0 | 1));
+            this.entityData.set(DATA_FLAGS_ID, (byte) (b0 | SITTING));
         } else {
-            this.entityData.set(DATA_FLAGS_ID, (byte) (b0 & -2));
+            this.entityData.set(DATA_FLAGS_ID, (byte) (b0 & ~SITTING));
         }
 
     }
