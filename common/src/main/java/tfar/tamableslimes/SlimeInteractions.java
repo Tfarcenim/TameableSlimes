@@ -1,7 +1,9 @@
 package tfar.tamableslimes;
 
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -14,6 +16,7 @@ import java.util.Map;
 public class SlimeInteractions {
 
     public static final Map<Item, EntityInteract> INTERACTIONS = new HashMap<>();
+    public static final Map<String,EntityEffect> EFFECT_MAP = new HashMap<>();
 
     public static void bootstrap() {
         INTERACTIONS.clear();
@@ -31,6 +34,20 @@ public class SlimeInteractions {
             }
             return InteractionResult.PASS;
         }));
+        INTERACTIONS.put(Items.SHEARS,(tamableSlime, player, hand) -> {
+            ItemStack stack = player.getItemInHand(hand);
+           if (!tamableSlime.level().isClientSide) {
+               tamableSlime.kill();
+               tamableSlime.gameEvent(GameEvent.SHEAR, player);
+               stack.hurtAndBreak(1, player, player1 -> player1.broadcastBreakEvent(hand));
+               return InteractionResult.SUCCESS;
+           } else {
+               return InteractionResult.CONSUME;
+           }
+        });
+
+        EFFECT_MAP.clear();
+
     }
 
     static EntityInteract combine(EntityInteract first,EntityInteract second) {
@@ -56,6 +73,11 @@ public class SlimeInteractions {
             }
             return InteractionResult.PASS;
         };
+    }
+
+    @FunctionalInterface
+    public interface EntityEffect {
+        void apply(TamableSlime slime,Entity target);
     }
 
     @FunctionalInterface
