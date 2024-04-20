@@ -1,0 +1,10 @@
+{
+  "type": "forge:add_spawns",
+  "biomes": "#minecraft:has_structure/swamp_hut",
+  "spawners": {
+    "type": "tameableslimes:tamable_slime",
+    "maxCount": 4,
+    "minCount": 1,
+    "weight": 5
+  }
+}

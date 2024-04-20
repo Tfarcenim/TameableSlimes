@@ -2,6 +2,8 @@ package tfar.tamableslimes;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -85,10 +87,7 @@ public class TamableSlime extends Slime implements OwnableEntity {
     public boolean wantsToAttack(LivingEntity pTarget, LivingEntity pOwner) {
         if (pTarget == pOwner) {//don't attack the owner
             return false;
-        } else if (pTarget instanceof Creeper || pTarget instanceof Ghast) {
-            return false;//don't attack creepers or ghasts
-        }
-        return true;
+        } else return !(pTarget instanceof Creeper) && !(pTarget instanceof Ghast);//don't attack creepers or ghasts
     }
 
     @Override
@@ -211,11 +210,17 @@ public class TamableSlime extends Slime implements OwnableEntity {
 
                 InteractionResult interactionresult = super.mobInteract(pPlayer, pHand);
                 if ((!interactionresult.consumesAction() || this.isBaby()) && this.isOwnedBy(pPlayer)) {
-                    this.setOrderedToSit(!this.isOrderedToSit());
-                    this.jumping = false;
-                    this.navigation.stop();
-                    this.setTarget(null);
-                    return InteractionResult.SUCCESS;
+                    if (pPlayer.isCrouching()) {
+                        this.level().broadcastEntityEvent(this, EntityEvent.IN_LOVE_HEARTS);
+
+                        return InteractionResult.SUCCESS;
+                    } else {
+                        this.setOrderedToSit(!this.isOrderedToSit());
+                        this.jumping = false;
+                        this.navigation.stop();
+                        this.setTarget(null);
+                        return InteractionResult.SUCCESS;
+                    }
                 } else {
                     return interactionresult;
                 }
@@ -230,15 +235,51 @@ public class TamableSlime extends Slime implements OwnableEntity {
                 this.navigation.stop();
                 this.setTarget(null);
                 this.setOrderedToSit(true);
-                this.level().broadcastEntityEvent(this, (byte) 0b111);
+                this.level().broadcastEntityEvent(this, EntityEvent.TAMING_SUCCEEDED);
             } else {
-                this.level().broadcastEntityEvent(this, (byte) 0b110);
+                this.level().broadcastEntityEvent(this,EntityEvent.TAMING_FAILED);
             }
 
             return InteractionResult.SUCCESS;
         } else {
             return super.mobInteract(pPlayer, pHand);
         }
+    }
+
+
+    @Override
+    public void handleEntityEvent(byte pId) {
+        switch (pId) {
+            case EntityEvent.TAMING_SUCCEEDED -> this.spawnTamingParticles(true);
+            case EntityEvent.TAMING_FAILED -> this.spawnTamingParticles(false);
+            case EntityEvent.IN_LOVE_HEARTS -> {
+                for (int i = 0; i < 7; ++i) {
+                    double d0 = this.random.nextGaussian() * 0.02D;
+                    double d1 = this.random.nextGaussian() * 0.02D;
+                    double d2 = this.random.nextGaussian() * 0.02D;
+                    this.level().addParticle(ParticleTypes.HEART, this.getRandomX(1.0D), this.getRandomY() + 0.5D, this.getRandomZ(1.0D), d0, d1, d2);
+                }
+            }
+            default -> super.handleEntityEvent(pId);
+        }
+    }
+
+    /**
+     * Play the taming effect, will either be hearts or smoke depending on status
+     */
+    protected void spawnTamingParticles(boolean pTamed) {
+        ParticleOptions particleoptions = ParticleTypes.HEART;
+        if (!pTamed) {
+            particleoptions = ParticleTypes.SMOKE;
+        }
+
+        for(int i = 0; i < 7; ++i) {
+            double d0 = this.random.nextGaussian() * 0.02D;
+            double d1 = this.random.nextGaussian() * 0.02D;
+            double d2 = this.random.nextGaussian() * 0.02D;
+            this.level().addParticle(particleoptions, this.getRandomX(1.0D), this.getRandomY() + 0.5D, this.getRandomZ(1.0D), d0, d1, d2);
+        }
+
     }
 
     @Override

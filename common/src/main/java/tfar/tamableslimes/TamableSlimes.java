@@ -7,6 +7,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.monster.Phantom;
+import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.ServerLevelAccessor;
 import org.slf4j.Logger;
@@ -33,5 +34,12 @@ public class TamableSlimes {
     public static boolean spawnConditions(EntityType<TamableSlime> pType, ServerLevelAccessor pLevel, MobSpawnType pSpawnType, BlockPos pPos, RandomSource pRandom) {
         boolean b = Mob.checkMobSpawnRules(pType,pLevel,pSpawnType,pPos,pRandom);
         return b;
+    }
+
+    public static void onSlimeSplit(Slime oldSlime,Slime newSlime) {
+        if (oldSlime instanceof TamableSlime oldTamableSlime && newSlime instanceof TamableSlime newTamableSlime) {
+            newTamableSlime.setTame(oldTamableSlime.isTame());
+            newTamableSlime.setOwnerUUID(oldTamableSlime.getOwnerUUID());
+        }
     }
 }
