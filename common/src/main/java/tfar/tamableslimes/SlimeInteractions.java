@@ -13,12 +13,12 @@ import java.util.Map;
 
 public class SlimeInteractions {
 
-    public static final Map<Item, EntityInteract> SLIME_INTERACTIONS = new HashMap<>();
+    public static final Map<Item, EntityInteract> INTERACTIONS = new HashMap<>();
 
     public static void bootstrap() {
-        SLIME_INTERACTIONS.clear();
-        SLIME_INTERACTIONS.put(Items.SLIME_BALL, createHealingInteraction(2));
-        SLIME_INTERACTIONS.put(Items.SLIME_BLOCK, (tamableSlime, player, hand) -> {
+        INTERACTIONS.clear();
+        INTERACTIONS.put(Items.SLIME_BALL, createHealingInteraction(2));
+        INTERACTIONS.put(Items.SLIME_BLOCK,combine(createHealingInteraction(20),(tamableSlime, player, hand) -> {
             if (tamableSlime.canGrow()) {
                 if (!tamableSlime.level().isClientSide) {
                     tamableSlime.setSize(tamableSlime.getSize() + 1, true);
@@ -30,7 +30,15 @@ public class SlimeInteractions {
                 return InteractionResult.SUCCESS;
             }
             return InteractionResult.PASS;
-        });
+        }));
+    }
+
+    static EntityInteract combine(EntityInteract first,EntityInteract second) {
+        return (tamableSlime, player, hand) -> {
+         InteractionResult result1 = first.interact(tamableSlime, player, hand);
+         if (result1.consumesAction()) return result1;
+         return second.interact(tamableSlime, player, hand);
+        };
     }
 
     static EntityInteract createHealingInteraction(float heal) {
@@ -50,6 +58,7 @@ public class SlimeInteractions {
         };
     }
 
+    @FunctionalInterface
     public interface EntityInteract {
         InteractionResult interact(TamableSlime tamableSlime, Player player, InteractionHand hand);
     }

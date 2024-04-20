@@ -1,7 +1,5 @@
 package tfar.tamableslimes;
 
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
@@ -24,9 +22,7 @@ import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.gameevent.GameEvent;
 import org.jetbrains.annotations.Nullable;
 import tfar.tamableslimes.entity.goal.SlimeFollowOwnerGoal;
 import tfar.tamableslimes.entity.goal.SlimeOwnerHurtByTargetGoal;
@@ -172,7 +168,7 @@ public class TamableSlime extends Slime implements OwnableEntity {
         } else {
             if (isOwnedBy(player)) {
                 if (!itemstack.isEmpty()) {
-                    SlimeInteractions.EntityInteract entityInteract = SlimeInteractions.SLIME_INTERACTIONS.get(item);
+                    SlimeInteractions.EntityInteract entityInteract = SlimeInteractions.INTERACTIONS.get(item);
                     return entityInteract == null ? InteractionResult.PASS : entityInteract.interact(this, player, pHand);
                 } else {
                     return emptyRightClick(player,pHand);
