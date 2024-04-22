@@ -8,6 +8,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import tfar.tamableslimes.TamableSlime;
 import tfar.tamableslimes.TamableSlimes;
 
 @Mixin(Slime.class)//todo, neoforge adds MobSplitEvent in 1.20.4
@@ -20,4 +21,10 @@ public class SlimeMixin {
         TamableSlimes.onSlimeSplit((Slime) (Object)this,slime);
     }
 
+    @Inject(method = "push",at = @At(value = "INVOKE",target = "Lnet/minecraft/world/entity/monster/Slime;dealDamage(Lnet/minecraft/world/entity/LivingEntity;)V"), cancellable = true)
+    private void onGolemPush(Entity entity, CallbackInfo ci) {
+        if ((Object)this instanceof TamableSlime) {
+            ci.cancel();
+        }
+    }
 }

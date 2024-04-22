@@ -4,6 +4,9 @@ import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -29,7 +32,9 @@ import tfar.tamableslimes.entity.goal.SlimeOwnerHurtByTargetGoal;
 import tfar.tamableslimes.entity.goal.SlimeOwnerHurtTargetGoal;
 import tfar.tamableslimes.entity.goal.SlimeSitWhenOrderedToSitGoal;
 
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public class TamableSlime extends Slime implements OwnableEntity {
@@ -37,8 +42,9 @@ public class TamableSlime extends Slime implements OwnableEntity {
     protected static final EntityDataAccessor<Optional<UUID>> DATA_OWNERUUID_ID = SynchedEntityData.defineId(TamableSlime.class, EntityDataSerializers.OPTIONAL_UUID);
     protected static final EntityDataAccessor<Byte> DATA_FLAGS_ID = SynchedEntityData.defineId(TamableSlime.class, EntityDataSerializers.BYTE);
     private boolean orderedToSit;
-
     public static final TagKey<Item> TAMING_ITEM = TagKey.create(Registries.ITEM, new ResourceLocation(TamableSlimes.MOD_ID, "taming_item"));
+
+    protected Set<String> slimeEffects = new HashSet<>();
 
     public TamableSlime(EntityType<? extends Slime> $$0, Level $$1) {
         super($$0, $$1);
@@ -114,8 +120,8 @@ public class TamableSlime extends Slime implements OwnableEntity {
         return (this.entityData.get(DATA_FLAGS_ID) & TAME) != 0;
     }
 
-    static final byte TAME = 0b100;
-    static final byte SITTING = 0b1;
+    static final byte TAME = 1 << 2;
+    static final byte SITTING = 1;//1 << 0
 
     public void setTame(boolean pTamed) {
         byte flags = this.entityData.get(DATA_FLAGS_ID);
@@ -128,6 +134,7 @@ public class TamableSlime extends Slime implements OwnableEntity {
         this.reassessTameGoals();
     }
 
+    //note, there's a mixin to prevent damage to iron golems
     @Override
     public void push(Entity pEntity) {
         super.push(pEntity);
@@ -138,13 +145,15 @@ public class TamableSlime extends Slime implements OwnableEntity {
         }
     }
 
+
     @Override
-    protected void dealDamage(LivingEntity entity) {
-        if (entity instanceof IronGolem) {
-            //super will damage the iron golem
-        } else {
-            super.dealDamage(entity);
-        }
+    protected void dealDamage(LivingEntity living) {
+        super.dealDamage(living);
+        applyEffects(living);
+    }
+
+    void applyEffects(LivingEntity living) {
+        slimeEffects.forEach(s -> SlimeInteractions.EFFECT_MAP.get(s).apply(this,living));
     }
 
     @Override
@@ -272,7 +281,10 @@ public class TamableSlime extends Slime implements OwnableEntity {
         } else {
             this.entityData.set(DATA_FLAGS_ID, (byte) (b0 & ~SITTING));
         }
+    }
 
+    boolean addSlimeEffect(String effect) {
+        return slimeEffects.add(effect);
     }
 
     public void tame(Player pPlayer) {
@@ -292,6 +304,10 @@ public class TamableSlime extends Slime implements OwnableEntity {
         }
 
         pCompound.putBoolean("Sitting", this.orderedToSit);
+
+        ListTag listTag = new ListTag();
+        slimeEffects.forEach(s -> listTag.add(StringTag.valueOf(s)));
+        pCompound.put("SlimeEffects",listTag);
     }
 
     /**
@@ -319,6 +335,12 @@ public class TamableSlime extends Slime implements OwnableEntity {
 
         this.orderedToSit = pCompound.getBoolean("Sitting");
         this.setInSittingPose(this.orderedToSit);
+
+        slimeEffects.clear();
+        ListTag listTag = pCompound.getList("SlimeEffects", Tag.TAG_STRING);
+        for (Tag tag : listTag) {
+            slimeEffects.add(tag.getAsString());
+        }
     }
 
 

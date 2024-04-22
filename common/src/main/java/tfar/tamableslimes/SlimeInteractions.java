@@ -1,9 +1,13 @@
 package tfar.tamableslimes;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -20,6 +24,7 @@ public class SlimeInteractions {
 
     public static void bootstrap() {
         INTERACTIONS.clear();
+        EFFECT_MAP.clear();
         INTERACTIONS.put(Items.SLIME_BALL, createHealingInteraction(2));
         INTERACTIONS.put(Items.SLIME_BLOCK,combine(createHealingInteraction(20),(tamableSlime, player, hand) -> {
             if (tamableSlime.canGrow()) {
@@ -45,9 +50,25 @@ public class SlimeInteractions {
                return InteractionResult.CONSUME;
            }
         });
+        addEffect(Items.MAGMA_CREAM,(slime, target) -> target.setSecondsOnFire(2));
+        addEffect(Items.NETHER_STAR,((slime, target) -> target.addEffect(new MobEffectInstance(MobEffects.WITHER,100))));
+    }
 
-        EFFECT_MAP.clear();
-
+    static void addEffect(Item item,EntityEffect effect) {
+        String name = BuiltInRegistries.ITEM.getKey(item).getPath();
+        INTERACTIONS.put(item,(tamableSlime, player, hand) -> {
+            boolean b = tamableSlime.addSlimeEffect(name);
+            if (!b) return InteractionResult.FAIL;
+            if (!tamableSlime.level().isClientSide) {
+                if (!player.getAbilities().instabuild) {
+                    ItemStack stack = player.getItemInHand(hand);
+                    stack.shrink(1);
+                }
+                return InteractionResult.SUCCESS;
+            }
+            return InteractionResult.CONSUME;
+        });
+        EFFECT_MAP.put(name,effect);
     }
 
     static EntityInteract combine(EntityInteract first,EntityInteract second) {
@@ -77,7 +98,7 @@ public class SlimeInteractions {
 
     @FunctionalInterface
     public interface EntityEffect {
-        void apply(TamableSlime slime,Entity target);
+        void apply(TamableSlime slime, LivingEntity target);
     }
 
     @FunctionalInterface
